@@ -3999,7 +3999,10 @@ const utils = __importStar(__nccwpck_require__(314));
 function installGitRemoteHg(dir) {
     return __awaiter(this, void 0, void 0, function* () {
         const gitPath = yield io.which('git', true);
+        const pipPath = yield io.which('pip', true);
+        yield utils.execOut(pipPath, ['install', 'mercurial==5.3.2', '--user'], false, '');
         const repoPath = `${dir}/git-remote-hg`;
+        yield io.mkdirP(repoPath);
         yield utils.execOut(gitPath, ['clone', 'https://github.com/mozillazg/git-remote-hg.git', '-b', 'pypy', '--depth', '1', repoPath], false, '');
         const chmodPath = yield io.which('chmod', true);
         const toolPath = `${repoPath}/git-remote-hg`;
@@ -4012,8 +4015,9 @@ function mirrorHgRepo(dir, hgURL, gitURL, trackTool) {
     return __awaiter(this, void 0, void 0, function* () {
         const gitPath = yield io.which('git', true);
         const pythonPath = yield io.which('python', true);
-        const bashPath = yield io.which('python', true);
+        const bashPath = yield io.which('bash', true);
         const repoPath = `${dir}/hg_repo`;
+        yield io.mkdirP(repoPath);
         yield utils.execOut(gitPath, ['clone', `hg::${hgURL}`, repoPath], false, dir);
         yield utils.execOut(gitPath, ['config', 'core.notesRef', 'refs/notes/hg'], false, repoPath);
         yield utils.execOut(bashPath, ['-c', 'for remote in `git branch|grep -v \'\\* master\'`; do git branch -d $remote; done'], false, repoPath);
@@ -4036,7 +4040,7 @@ function main() {
         const gitToken = core.getInput('destination-git-personal-token', { required: true });
         core.setSecret(gitToken);
         const gitRepoURL = `https://${gitRepoOwner}:${gitToken}@github.com/${gitRepoOwner}/${gitRepoName}.git`;
-        const tmpDir = yield utils.execOut('mktemp', [], true, '');
+        const tmpDir = yield utils.execOut('mktemp', ['-d'], true, '');
         const trackTool = yield installGitRemoteHg(tmpDir);
         yield mirrorHgRepo(tmpDir, hgRepoURL, gitRepoURL, trackTool);
     });
