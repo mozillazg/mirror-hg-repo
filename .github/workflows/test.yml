@@ -1,0 +1,27 @@
+name: test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    name: mirror hg repo
+    permissions:
+      contents: read  # This is required for actions/checkout
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python 2
+        uses: actions/setup-python@v4
+        with:
+          python-version: 2.7
+
+      - name: do mirror action
+        uses: ./ # Uses an action in the root directory
+        with:
+          source-hg-repo-url: 'https://foss.heptapod.net/pypy/cffi'
+          destination-git-repo-owner: 'mozillazg'
+          destination-git-repo-name: 'test-mirror-cffi'
+          destination-git-personal-token: '${{ secrets.PERSONAL_GIT_TOKEN }}'

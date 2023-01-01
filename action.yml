@@ -1,0 +1,29 @@
+name: 'Mirror Mercurial (hg) repository to GitHub'
+description: |-
+  Mirror Mercurial (hg) repository to GitHub.
+inputs:
+  source-hg-repo-url:
+    description: ''
+    required: true
+#  destination-git-domain:
+#    description: ''
+#    default: 'github.com'
+#    required: false
+#  destination-git-scheme:
+#    description: ''
+#    default: 'https'
+#    required: false
+  destination-git-repo-owner:
+    description: ''
+    required: true
+  destination-git-repo-name:
+    description: ''
+    required: true
+  destination-git-personal-token:
+    description: ''
+    required: true
+
+runs:
+  using: 'node16'
+  main: 'dist/index.js'
+#  post: 'dist/post/index.js'
