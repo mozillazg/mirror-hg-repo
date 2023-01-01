@@ -23,6 +23,10 @@ inputs:
     description: ''
     required: true
 
+branding:
+  icon: 'arrow-up-circle'
+  color: 'blue'
+
 runs:
   using: 'node16'
   main: 'dist/index.js'
