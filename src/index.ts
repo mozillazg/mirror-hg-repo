@@ -27,7 +27,7 @@ async function installGitRemoteHg(dir: string) {
     return `${repoPath}/track_all_remote_branches.py`;
 }
 
-async function mirrorHgRepo(dir: string, hgURL: string, gitURL: string, trackTool: string) {
+async function mirrorHgRepo(dir: string, hgURL: string, gitURL: string, trackTool: string, forcePush: boolean) {
     const gitPath = await io.which('git', true);
     const pythonPath = await io.which('python', true);
     const bashPath = await io.which('bash', true);
@@ -45,8 +45,12 @@ async function mirrorHgRepo(dir: string, hgURL: string, gitURL: string, trackToo
     await utils.execOut(gitPath, ['pull'], false, repoPath);
     await utils.execOut(gitPath, ['reset', '--hard', 'default'], false, repoPath);
 
-    await utils.execOut(gitPath, ['push', gitURL, '--all'], false, repoPath);
-    await utils.execOut(gitPath, ['push', gitURL, '--tags'], false, repoPath);
+    const extraArgs = [];
+    if (forcePush) {
+        extraArgs.push('--force');
+    }
+    await utils.execOut(gitPath, ['push', gitURL, '--all'].concat(extraArgs), false, repoPath);
+    await utils.execOut(gitPath, ['push', gitURL, '--tags'].concat(extraArgs), false, repoPath);
 }
 
 async function main() {
@@ -57,13 +61,16 @@ async function main() {
     const gitScheme = 'https';
     const gitRepoOwner = core.getInput('destination-git-repo-owner', { required: true });
     const gitRepoName = core.getInput('destination-git-repo-name', { required: true });
+    const forcePush = core.getBooleanInput('force-push', { required: false });
+
     const gitToken = core.getInput('destination-git-personal-token', { required: true });
     core.setSecret(gitToken);
-    const gitRepoURL = `https://${gitRepoOwner}:${gitToken}@github.com/${gitRepoOwner}/${gitRepoName}.git`;
+
+    const gitRepoURL = `${gitScheme}://${gitRepoOwner}:${gitToken}@${gitDomain}/${gitRepoOwner}/${gitRepoName}.git`;
 
     const tmpDir = await utils.execOut('mktemp', ['-d'], true, '');
     const trackTool = await installGitRemoteHg(tmpDir);
-    await mirrorHgRepo(tmpDir, hgRepoURL, gitRepoURL, trackTool);
+    await mirrorHgRepo(tmpDir, hgRepoURL, gitRepoURL, trackTool, forcePush);
 }
 
 main();

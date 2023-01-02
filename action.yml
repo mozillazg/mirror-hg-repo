@@ -22,6 +22,10 @@ inputs:
   destination-git-personal-token:
     description: ''
     required: true
+  force-push:
+    description: ''
+    required: false
+    default: 'false'
 
 branding:
   icon: 'arrow-up-circle'

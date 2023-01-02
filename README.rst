@@ -30,5 +30,6 @@ Inputs
 * ``destination-git-repo-owner``: (**Required**) The owner of Github repository.
 * ``destination-git-repo-name``: (**Required**) The name of Github repository.
 * ``destination-git-personal-token``: (**Required**) A `Github personal access token`_ which have permission to push codes to the repository.
+* ``force-push``: (Optional) Run ``git push`` command with the ``--force`` flag. The default value is: ``false``
 
 .. _Github personal access token: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token#creating-a-fine-grained-personal-access-token
