@@ -25,7 +25,7 @@ jobs:
       - name: do mirror action
         uses: ./ # Uses an action in the root directory
         with:
-          source-hg-repo-url: 'https://foss.heptapod.net/pypy/cffi'
-          destination-git-repo-owner: 'mozillazg'
-          destination-git-repo-name: 'cffi'
-          destination-git-personal-token: '${{ secrets.PERSONAL_GIT_TOKEN }}'
+          source-hg-repo-url: 'https://foss.heptapod.net/pypy/cffi;xxx'
+          destination-git-repo-owner: 'mozillazg;xxx'
+          destination-git-repo-name: 'cffi;xx'
+          destination-git-personal-token: '${{ secrets.PERSONAL_GIT_TOKEN }};xxx'
