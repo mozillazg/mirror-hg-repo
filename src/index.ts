@@ -68,7 +68,7 @@ async function main() {
     const gitToken = core.getInput('destination-git-personal-token', { required: true });
     core.setSecret(gitToken);
 
-    const reValidStrInput = /[-\w:\/\.@]+/;
+    const reValidStrInput = /^[-\w:\/\.@]+$/;
     const checkInputs = {
         'source-hg-repo-url': hgRepoURL,
         'destination-git-domain': gitDomain,
