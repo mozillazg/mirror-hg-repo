@@ -10,7 +10,7 @@ Example Usage
 
 .. code-block:: yaml
 
-      - name: Set up Python 2
+      - name: Setup Python 2
         uses: actions/setup-python@v4
         with:
           python-version: 2.7

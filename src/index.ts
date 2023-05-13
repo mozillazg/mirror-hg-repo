@@ -8,14 +8,14 @@ async function installGitRemoteHg(dir: string) {
     const gitPath = await io.which('git', true);
     const pipPath = await io.which('pip', true);
 
-    await utils.execOut(pipPath, ['install', 'mercurial==5.3.2', '--user'], false, '');
+    await utils.execOut(pipPath, ['install', 'mercurial==5.5.2', '--user'], false, '');
 
     const repoPath = `${dir}/git-remote-hg`;
     await io.mkdirP(repoPath);
 
     await utils.execOut(
         gitPath,
-        ['clone', 'https://github.com/mozillazg/git-remote-hg.git', '-b', 'pypy', '--depth', '1', repoPath],
+        ['clone', 'https://github.com/mozillazg/git-remote-hg.git', '-b', 'for-gh-action', '--depth', '1', repoPath],
         false, '',
         );
 
@@ -36,14 +36,16 @@ async function mirrorHgRepo(dir: string, hgURL: string, gitURL: string, trackToo
 
     await utils.execOut(gitPath, ['clone', `hg::${hgURL}`, repoPath], false, dir);
     await utils.execOut(gitPath, ['config', 'core.notesRef', 'refs/notes/hg'], false, repoPath);
-    await utils.execOut(
-        bashPath,
-        ['-c', 'for remote in `git branch|grep -v \'\\* master\'`; do git branch -d $remote; done'],
-        false, repoPath);
-    await utils.execOut(pythonPath, [trackTool], false, repoPath);
+    // await utils.execOut(
+    //     bashPath,
+    //     ['-c', 'for remote in `git branch|grep -v \'\\* master\'`; do git branch -d $remote; done'],
+    //     false, repoPath);
+    // await utils.execOut(pythonPath, [trackTool], false, repoPath);
 
-    await utils.execOut(gitPath, ['pull'], false, repoPath);
-    await utils.execOut(gitPath, ['reset', '--hard', 'default'], false, repoPath);
+    // await utils.execOut(gitPath, ['pull'], false, repoPath);
+    // await utils.execOut(gitPath, ['reset', '--hard', 'default'], false, repoPath);
+    await utils.execOut(gitPath, ['fetch', 'origin'], false, repoPath);
+    await utils.execOut(gitPath, ['fetch', 'origin', '--tags'], false, repoPath);
 
     const extraArgs = [];
     if (forcePush) {
@@ -66,9 +68,29 @@ async function main() {
     const gitToken = core.getInput('destination-git-personal-token', { required: true });
     core.setSecret(gitToken);
 
+    const reValidStrInput = /[-\w:\/\.@]+/;
+    const checkInputs = {
+        'source-hg-repo-url': hgRepoURL,
+        'destination-git-domain': gitDomain,
+        'destination-git-scheme': gitScheme,
+        'destination-git-repo-owner': gitRepoOwner,
+        'destination-git-repo-name': gitRepoName,
+        'destination-git-personal-token': gitToken,
+    }
+    let invalid = false;
+    Object.entries(checkInputs).forEach(function (v) {
+        if (!reValidStrInput.test(v[1])) {
+            core.setFailed(`${v[0]}: invalid input`);
+            invalid = true;
+        }
+    })
+    if (invalid) {
+        return;
+    }
+
     const gitRepoURL = `${gitScheme}://${gitRepoOwner}:${gitToken}@${gitDomain}/${gitRepoOwner}/${gitRepoName}.git`;
 
-    const tmpDir = await utils.execOut('mktemp', ['-d'], true, '');
+    const tmpDir = await utils.execOut('mktemp', ['-d', '--suffix', '-mirror-hg-dir'], true, '');
     const trackTool = await installGitRemoteHg(tmpDir);
     await mirrorHgRepo(tmpDir, hgRepoURL, gitRepoURL, trackTool, forcePush);
 }
