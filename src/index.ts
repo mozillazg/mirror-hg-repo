@@ -46,6 +46,7 @@ async function mirrorHgRepo(dir: string, hgURL: string, gitURL: string, trackToo
     // await utils.execOut(gitPath, ['reset', '--hard', 'default'], false, repoPath);
     await utils.execOut(gitPath, ['fetch', 'origin'], false, repoPath);
     await utils.execOut(gitPath, ['fetch', 'origin', '--tags'], false, repoPath);
+    await utils.execOut(bashPath, ['-c', `"${gitPath} branch --track default origin/master || true"`], false, repoPath);
 
     const extraArgs = [];
     if (forcePush) {

@@ -10,13 +10,12 @@ Example Usage
 
 .. code-block:: yaml
 
-      - name: Setup Python 2
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
-          python-version: 2.7
+          python-version: '3.10'
 
       - name: mirror https://foss.heptapod.net/pypy/cffi
-        uses: 'mozillazg/mirror-hg-repo@v1'
+        uses: 'mozillazg/mirror-hg-repo@v2'
         with:
           source-hg-repo-url: 'https://foss.heptapod.net/pypy/cffi'
           destination-git-repo-owner: 'mozillazg'
@@ -26,7 +25,7 @@ Example Usage
 Inputs
 ======
 
-* ``source-hg-repo-url``: (**Required**) The clone URL of a Mercurial (hg) repository. e.g. https://foss.heptapod.net/pypy/cffi
+* ``source-hg-repo-url``: (**Required**) The clone URL of a Mercurial (hg) repository. e.g. `https://foss.heptapod.net/pypy/cffi`
 * ``destination-git-repo-owner``: (**Required**) The owner of Github repository.
 * ``destination-git-repo-name``: (**Required**) The name of Github repository.
 * ``destination-git-personal-token``: (**Required**) A `Github personal access token`_ which have permission to push codes to the repository.
