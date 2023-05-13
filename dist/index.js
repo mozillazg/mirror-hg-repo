@@ -4003,7 +4003,9 @@ function installGitRemoteHg(dir) {
         yield utils.execOut(pipPath, ['install', 'mercurial==5.5.2', '--user'], false, '');
         const repoPath = `${dir}/git-remote-hg`;
         yield io.mkdirP(repoPath);
-        yield utils.execOut(gitPath, ['clone', 'https://github.com/mozillazg/git-remote-hg.git', '-b', 'for-gh-action', '--depth', '1', repoPath], false, '');
+        // v1.0.4 https://github.com/mnauw/git-remote-hg/commit/426ed618b29170322fb6968f4cdce1d7e707aa1d
+        yield utils.execOut(gitPath, ['clone', 'https://github.com/mnauw/git-remote-hg.git', '-b', 'v1.0.4', '--depth', '1', repoPath], false, '');
+        yield utils.execOut(gitPath, ['checkout', '426ed618b29170322fb6968f4cdce1d7e707aa1d'], false, repoPath);
         const chmodPath = yield io.which('chmod', true);
         const toolPath = `${repoPath}/git-remote-hg`;
         yield utils.execOut(chmodPath, ['+x', `${toolPath}`], false, '');
@@ -4029,6 +4031,12 @@ function mirrorHgRepo(dir, hgURL, gitURL, trackTool, forcePush) {
         // await utils.execOut(gitPath, ['reset', '--hard', 'default'], false, repoPath);
         yield utils.execOut(gitPath, ['fetch', 'origin'], false, repoPath);
         yield utils.execOut(gitPath, ['fetch', 'origin', '--tags'], false, repoPath);
+        try {
+            yield utils.execOut(gitPath, ['branch', '--track', 'default', 'origin/master'], false, repoPath);
+        }
+        catch (e) {
+            console.info(e);
+        }
         const extraArgs = [];
         if (forcePush) {
             extraArgs.push('--force');
@@ -4049,7 +4057,7 @@ function main() {
         const forcePush = core.getBooleanInput('force-push', { required: false });
         const gitToken = core.getInput('destination-git-personal-token', { required: true });
         core.setSecret(gitToken);
-        const reValidStrInput = /[-\w:\/\.@]+/;
+        const reValidStrInput = /^[-\w:\/\.@]+$/;
         const checkInputs = {
             'source-hg-repo-url': hgRepoURL,
             'destination-git-domain': gitDomain,
