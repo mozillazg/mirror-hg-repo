@@ -4000,7 +4000,7 @@ function installGitRemoteHg(dir) {
     return __awaiter(this, void 0, void 0, function* () {
         const gitPath = yield io.which('git', true);
         const pipPath = yield io.which('pip', true);
-        yield utils.execOut(pipPath, ['install', 'mercurial==5.5.2', '--user'], false, '');
+        yield utils.execOut(pipPath, ['install', 'mercurial==5.3.2', '--user'], false, '');
         const repoPath = `${dir}/git-remote-hg`;
         yield io.mkdirP(repoPath);
         // v1.0.4 https://github.com/mnauw/git-remote-hg/commit/426ed618b29170322fb6968f4cdce1d7e707aa1d
@@ -4057,7 +4057,7 @@ function main() {
         const forcePush = core.getBooleanInput('force-push', { required: false });
         const gitToken = core.getInput('destination-git-personal-token', { required: true });
         core.setSecret(gitToken);
-        const reValidStrInput = /^[-\w:\/\.@]+$/;
+        const reValidStrInput = /^[-a-zA-Z0-9_:\/\.@]+$/;
         const checkInputs = {
             'source-hg-repo-url': hgRepoURL,
             'destination-git-domain': gitDomain,
