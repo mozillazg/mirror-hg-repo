@@ -77,6 +77,10 @@ async function mirrorHgRepo(dir: string, hgURL: string, gitURL: string, trackToo
     if (forcePush) {
         extraArgs.push('--force');
     }
+    await utils.execOut(
+        bashPath,
+        ['-c', `for b in \`git branch\`; do git push ${gitURL}  ${forcePush ? '--force' : ''} "$b:$b" || true; done`],
+        false, repoPath);
     await utils.execOut(gitPath, ['push', gitURL, '--all'].concat(extraArgs), false, repoPath);
     await utils.execOut(gitPath, ['push', gitURL, '--tags'].concat(extraArgs), false, repoPath);
 }
