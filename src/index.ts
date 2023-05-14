@@ -4,27 +4,41 @@ import * as core from '@actions/core';
 import * as io from '@actions/io';
 import * as utils from  "./utils";
 
-async function installGitRemoteHg(dir: string) {
+async function installGitRemoteHg(dir: string, repoStyle: string) {
     const gitPath = await io.which('git', true);
     const pipPath = await io.which('pip', true);
 
-    // await utils.execOut(pipPath, ['install', 'mercurial==6.4.3', '--user'], false, '');
-    await utils.execOut(pipPath, ['install', 'mercurial==5.3.2', '--user'], false, '');
+    await utils.execOut(pipPath, ['install', 'mercurial==6.4.3', '--user'], false, '');
+    // await utils.execOut(pipPath, ['install', 'mercurial==5.3.2', '--user'], false, '');
 
     const repoPath = `${dir}/git-remote-hg`;
     await io.mkdirP(repoPath);
 
-    // v1.0.4 https://github.com/mnauw/git-remote-hg/commit/426ed618b29170322fb6968f4cdce1d7e707aa1d
+    const toolRepos = {
+        pypy: {
+            repo: 'https://github.com/mozillazg/git-remote-hg.git',
+            branch: 'pypy',
+            commitId: '',
+        },
+        normal: {
+            repo: 'https://github.com/mozillazg/git-remote-hg.git',
+            branch: 'for-gh-action',
+            commitId: '',
+        },
+    }
+    let toolRepo = toolRepos.normal;
+    if (repoStyle === 'pypy-style') {
+        toolRepo = toolRepos.pypy;
+    }
+
     await utils.execOut(
         gitPath,
-        ['clone', 'https://github.com/mozillazg/git-remote-hg.git', '-b', 'pypy', '--depth', '1', repoPath],
+        ['clone', toolRepo.repo, '-b', toolRepo.branch, '--depth', '1', repoPath],
         false, '',
         );
-    // await utils.execOut(
-    //     gitPath,
-    //     ['checkout', '426ed618b29170322fb6968f4cdce1d7e707aa1d'],
-    //     false, repoPath,
-    // );
+    if (toolRepo.commitId && toolRepo.commitId !== '') {
+        await utils.execOut( gitPath, ['checkout', toolRepo.commitId], false, repoPath);
+    }
 
     const chmodPath = await io.which('chmod', true);
     const toolPath = `${repoPath}/git-remote-hg`;
@@ -76,6 +90,7 @@ async function main() {
     const gitRepoOwner = core.getInput('destination-git-repo-owner', { required: true });
     const gitRepoName = core.getInput('destination-git-repo-name', { required: true });
     const forcePush = core.getBooleanInput('force-push', { required: false });
+    const repoStyle = core.getInput('repo-style', { required: false });
 
     const gitToken = core.getInput('destination-git-personal-token', { required: true });
     core.setSecret(gitToken);
@@ -88,6 +103,7 @@ async function main() {
         'destination-git-repo-owner': gitRepoOwner,
         'destination-git-repo-name': gitRepoName,
         'destination-git-personal-token': gitToken,
+        'repo-style': repoStyle,
     }
     let invalid = false;
     Object.entries(checkInputs).forEach(function (v) {
@@ -103,7 +119,7 @@ async function main() {
     const gitRepoURL = `${gitScheme}://${gitRepoOwner}:${gitToken}@${gitDomain}/${gitRepoOwner}/${gitRepoName}.git`;
 
     const tmpDir = await utils.execOut('mktemp', ['-d', '--suffix', '-mirror-hg-dir'], true, '');
-    const trackTool = await installGitRemoteHg(tmpDir);
+    const trackTool = await installGitRemoteHg(tmpDir, repoStyle);
     await mirrorHgRepo(tmpDir, hgRepoURL, gitRepoURL, trackTool, forcePush);
 }
 
