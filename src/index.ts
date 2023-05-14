@@ -18,12 +18,12 @@ async function installGitRemoteHg(dir: string, repoStyle: string) {
         pypy: {
             repo: 'https://github.com/mozillazg/git-remote-hg.git',
             branch: 'pypy',
-            commitId: '',
+            commitId: '969aa90a57231b5c42236816c214ea55c2b982d7',
         },
         normal: {
             repo: 'https://github.com/mozillazg/git-remote-hg.git',
             branch: 'for-gh-action',
-            commitId: '',
+            commitId: '9e2d6c42d2abec90cb5359166bb7298ac0b778f0',
         },
     }
     let toolRepo = toolRepos.normal;
@@ -33,7 +33,7 @@ async function installGitRemoteHg(dir: string, repoStyle: string) {
 
     await utils.execOut(
         gitPath,
-        ['clone', toolRepo.repo, '-b', toolRepo.branch, '--depth', '1', repoPath],
+        ['clone', toolRepo.repo, '-b', toolRepo.branch, repoPath],
         false, '',
         );
     if (toolRepo.commitId && toolRepo.commitId !== '') {
