@@ -26,6 +26,10 @@ inputs:
     description: ''
     required: false
     default: 'false'
+  repo-style:
+    description: 'normal or pypy-style'
+    required: false
+    default: 'normal'
 
 branding:
   icon: 'arrow-up-circle'
