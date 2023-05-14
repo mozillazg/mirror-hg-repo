@@ -8,7 +8,7 @@ async function installGitRemoteHg(dir: string) {
     const gitPath = await io.which('git', true);
     const pipPath = await io.which('pip', true);
 
-    await utils.execOut(pipPath, ['install', 'mercurial==5.3.2', '--user'], false, '');
+    await utils.execOut(pipPath, ['install', 'mercurial==6.4.3', '--user'], false, '');
 
     const repoPath = `${dir}/git-remote-hg`;
     await io.mkdirP(repoPath);
@@ -46,7 +46,7 @@ async function mirrorHgRepo(dir: string, hgURL: string, gitURL: string, trackToo
     //     bashPath,
     //     ['-c', 'for remote in `git branch|grep -v \'\\* master\'`; do git branch -d $remote; done'],
     //     false, repoPath);
-    // await utils.execOut(pythonPath, [trackTool], false, repoPath);
+    await utils.execOut(pythonPath, [trackTool], false, repoPath);
 
     // await utils.execOut(gitPath, ['pull'], false, repoPath);
     // await utils.execOut(gitPath, ['reset', '--hard', 'default'], false, repoPath);
