@@ -65,7 +65,7 @@ async function mirrorHgRepo(dir: string, hgURL: string, gitURL: string, trackToo
 
     // await utils.execOut(gitPath, ['pull'], false, repoPath);
     // await utils.execOut(gitPath, ['reset', '--hard', 'default'], false, repoPath);
-    await utils.execOut(gitPath, ['fetch', 'origin'], false, repoPath);
+    await utils.execOut(gitPath, ['fetch', 'origin', '--all'], false, repoPath);
     await utils.execOut(gitPath, ['fetch', 'origin', '--tags'], false, repoPath);
     try {
         await utils.execOut(gitPath, ['branch', '--track', 'default', 'origin/master'], false, repoPath);
@@ -79,7 +79,7 @@ async function mirrorHgRepo(dir: string, hgURL: string, gitURL: string, trackToo
     }
     await utils.execOut(
         bashPath,
-        ['-c', `git branch | tr -d '*' | tr -d ' ' | xargs -I {} git push ${gitURL}  ${forcePush ? '--force' : ''} "{}:{}" || true`],
+        ['-c', `for b in $(git branch | tr -d '*' | tr -d ' '); do echo $b && git push ${gitURL}  ${forcePush ? '--force' : ''} "$b:$b" || true; done`],
         false, repoPath);
     await utils.execOut(gitPath, ['push', gitURL, '--all'].concat(extraArgs), false, repoPath);
     await utils.execOut(gitPath, ['push', gitURL, '--tags'].concat(extraArgs), false, repoPath);
