@@ -2532,11 +2532,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rename = exports.readlink = exports.readdir = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
+exports.getCmdPath = exports.tryGetExecutablePath = exports.isRooted = exports.isDirectory = exports.exists = exports.READONLY = exports.UV_FS_O_EXLOCK = exports.IS_WINDOWS = exports.unlink = exports.symlink = exports.stat = exports.rmdir = exports.rm = exports.rename = exports.readlink = exports.readdir = exports.open = exports.mkdir = exports.lstat = exports.copyFile = exports.chmod = void 0;
 const fs = __importStar(__nccwpck_require__(147));
 const path = __importStar(__nccwpck_require__(17));
-_a = fs.promises, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
+_a = fs.promises
+// export const {open} = 'fs'
+, exports.chmod = _a.chmod, exports.copyFile = _a.copyFile, exports.lstat = _a.lstat, exports.mkdir = _a.mkdir, exports.open = _a.open, exports.readdir = _a.readdir, exports.readlink = _a.readlink, exports.rename = _a.rename, exports.rm = _a.rm, exports.rmdir = _a.rmdir, exports.stat = _a.stat, exports.symlink = _a.symlink, exports.unlink = _a.unlink;
+// export const {open} = 'fs'
 exports.IS_WINDOWS = process.platform === 'win32';
+// See https://github.com/nodejs/node/blob/d0153aee367422d0858105abec186da4dff0a0c5/deps/uv/include/uv/win.h#L691
+exports.UV_FS_O_EXLOCK = 0x10000000;
+exports.READONLY = fs.constants.O_RDONLY;
 function exists(fsPath) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -2717,12 +2723,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.findInPath = exports.which = exports.mkdirP = exports.rmRF = exports.mv = exports.cp = void 0;
 const assert_1 = __nccwpck_require__(491);
-const childProcess = __importStar(__nccwpck_require__(81));
 const path = __importStar(__nccwpck_require__(17));
-const util_1 = __nccwpck_require__(837);
 const ioUtil = __importStar(__nccwpck_require__(962));
-const exec = util_1.promisify(childProcess.exec);
-const execFile = util_1.promisify(childProcess.execFile);
 /**
  * Copies a file or folder.
  * Based off of shelljs - https://github.com/shelljs/shelljs/blob/9237f66c52e5daa40458f94f9565e18e8132f5a6/src/cp.js
@@ -2803,61 +2805,23 @@ exports.mv = mv;
 function rmRF(inputPath) {
     return __awaiter(this, void 0, void 0, function* () {
         if (ioUtil.IS_WINDOWS) {
-            // Node doesn't provide a delete operation, only an unlink function. This means that if the file is being used by another
-            // program (e.g. antivirus), it won't be deleted. To address this, we shell out the work to rd/del.
             // Check for invalid characters
             // https://docs.microsoft.com/en-us/windows/win32/fileio/naming-a-file
             if (/[*"<>|]/.test(inputPath)) {
                 throw new Error('File path must not contain `*`, `"`, `<`, `>` or `|` on Windows');
             }
-            try {
-                const cmdPath = ioUtil.getCmdPath();
-                if (yield ioUtil.isDirectory(inputPath, true)) {
-                    yield exec(`${cmdPath} /s /c "rd /s /q "%inputPath%""`, {
-                        env: { inputPath }
-                    });
-                }
-                else {
-                    yield exec(`${cmdPath} /s /c "del /f /a "%inputPath%""`, {
-                        env: { inputPath }
-                    });
-                }
-            }
-            catch (err) {
-                // if you try to delete a file that doesn't exist, desired result is achieved
-                // other errors are valid
-                if (err.code !== 'ENOENT')
-                    throw err;
-            }
-            // Shelling out fails to remove a symlink folder with missing source, this unlink catches that
-            try {
-                yield ioUtil.unlink(inputPath);
-            }
-            catch (err) {
-                // if you try to delete a file that doesn't exist, desired result is achieved
-                // other errors are valid
-                if (err.code !== 'ENOENT')
-                    throw err;
-            }
         }
-        else {
-            let isDir = false;
-            try {
-                isDir = yield ioUtil.isDirectory(inputPath);
-            }
-            catch (err) {
-                // if you try to delete a file that doesn't exist, desired result is achieved
-                // other errors are valid
-                if (err.code !== 'ENOENT')
-                    throw err;
-                return;
-            }
-            if (isDir) {
-                yield execFile(`rm`, [`-rf`, `${inputPath}`]);
-            }
-            else {
-                yield ioUtil.unlink(inputPath);
-            }
+        try {
+            // note if path does not exist, error is silent
+            yield ioUtil.rm(inputPath, {
+                force: true,
+                maxRetries: 3,
+                recursive: true,
+                retryDelay: 300
+            });
+        }
+        catch (err) {
+            throw new Error(`File was unable to be removed ${err}`);
         }
     });
 }
@@ -3996,14 +3960,34 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(186));
 const io = __importStar(__nccwpck_require__(436));
 const utils = __importStar(__nccwpck_require__(314));
-function installGitRemoteHg(dir) {
+function installGitRemoteHg(dir, repoStyle) {
     return __awaiter(this, void 0, void 0, function* () {
         const gitPath = yield io.which('git', true);
         const pipPath = yield io.which('pip', true);
-        yield utils.execOut(pipPath, ['install', 'mercurial==5.3.2', '--user'], false, '');
+        yield utils.execOut(pipPath, ['install', 'mercurial==6.4.3', '--user'], false, '');
+        // await utils.execOut(pipPath, ['install', 'mercurial==5.3.2', '--user'], false, '');
         const repoPath = `${dir}/git-remote-hg`;
         yield io.mkdirP(repoPath);
-        yield utils.execOut(gitPath, ['clone', 'https://github.com/mozillazg/git-remote-hg.git', '-b', 'pypy', '--depth', '1', repoPath], false, '');
+        const toolRepos = {
+            pypy: {
+                repo: 'https://github.com/mozillazg/git-remote-hg.git',
+                branch: 'pypy',
+                commitId: '969aa90a57231b5c42236816c214ea55c2b982d7',
+            },
+            normal: {
+                repo: 'https://github.com/mozillazg/git-remote-hg.git',
+                branch: 'for-gh-action',
+                commitId: '9e2d6c42d2abec90cb5359166bb7298ac0b778f0',
+            },
+        };
+        let toolRepo = toolRepos.normal;
+        if (repoStyle === 'pypy-style') {
+            toolRepo = toolRepos.pypy;
+        }
+        yield utils.execOut(gitPath, ['clone', toolRepo.repo, '-b', toolRepo.branch, repoPath], false, '');
+        if (toolRepo.commitId && toolRepo.commitId !== '') {
+            yield utils.execOut(gitPath, ['checkout', toolRepo.commitId], false, repoPath);
+        }
         const chmodPath = yield io.which('chmod', true);
         const toolPath = `${repoPath}/git-remote-hg`;
         yield utils.execOut(chmodPath, ['+x', `${toolPath}`], false, '');
@@ -4011,7 +3995,7 @@ function installGitRemoteHg(dir) {
         return `${repoPath}/track_all_remote_branches.py`;
     });
 }
-function mirrorHgRepo(dir, hgURL, gitURL, trackTool) {
+function mirrorHgRepo(dir, hgURL, gitURL, trackTool, forcePush) {
     return __awaiter(this, void 0, void 0, function* () {
         const gitPath = yield io.which('git', true);
         const pythonPath = yield io.which('python', true);
@@ -4020,12 +4004,28 @@ function mirrorHgRepo(dir, hgURL, gitURL, trackTool) {
         yield io.mkdirP(repoPath);
         yield utils.execOut(gitPath, ['clone', `hg::${hgURL}`, repoPath], false, dir);
         yield utils.execOut(gitPath, ['config', 'core.notesRef', 'refs/notes/hg'], false, repoPath);
-        yield utils.execOut(bashPath, ['-c', 'for remote in `git branch|grep -v \'\\* master\'`; do git branch -d $remote; done'], false, repoPath);
+        // await utils.execOut(
+        //     bashPath,
+        //     ['-c', 'for remote in `git branch|grep -v \'\\* master\'`; do git branch -d $remote; done'],
+        //     false, repoPath);
         yield utils.execOut(pythonPath, [trackTool], false, repoPath);
-        yield utils.execOut(gitPath, ['pull'], false, repoPath);
-        yield utils.execOut(gitPath, ['reset', '--hard', 'default'], false, repoPath);
-        yield utils.execOut(gitPath, ['push', gitURL, '--all'], false, repoPath);
-        yield utils.execOut(gitPath, ['push', gitURL, '--tags'], false, repoPath);
+        // await utils.execOut(gitPath, ['pull'], false, repoPath);
+        // await utils.execOut(gitPath, ['reset', '--hard', 'default'], false, repoPath);
+        yield utils.execOut(gitPath, ['fetch', 'origin'], false, repoPath);
+        yield utils.execOut(gitPath, ['fetch', 'origin', '--tags'], false, repoPath);
+        try {
+            yield utils.execOut(gitPath, ['branch', '--track', 'default', 'origin/master'], false, repoPath);
+        }
+        catch (e) {
+            console.info(e);
+        }
+        const extraArgs = [];
+        if (forcePush) {
+            extraArgs.push('--force');
+        }
+        yield utils.execOut(bashPath, ['-c', `for b in $(git branch | tr -d '*' | tr -d ' '); do echo $b && git push ${gitURL}  ${forcePush ? '--force' : ''} "$b:$b" || true; done`], false, repoPath);
+        yield utils.execOut(gitPath, ['push', gitURL, '--all'].concat(extraArgs), false, repoPath);
+        yield utils.execOut(gitPath, ['push', gitURL, '--tags'].concat(extraArgs), false, repoPath);
     });
 }
 function main() {
@@ -4037,12 +4037,34 @@ function main() {
         const gitScheme = 'https';
         const gitRepoOwner = core.getInput('destination-git-repo-owner', { required: true });
         const gitRepoName = core.getInput('destination-git-repo-name', { required: true });
+        const forcePush = core.getBooleanInput('force-push', { required: false });
+        const repoStyle = core.getInput('repo-style', { required: false });
         const gitToken = core.getInput('destination-git-personal-token', { required: true });
         core.setSecret(gitToken);
-        const gitRepoURL = `https://${gitRepoOwner}:${gitToken}@github.com/${gitRepoOwner}/${gitRepoName}.git`;
-        const tmpDir = yield utils.execOut('mktemp', ['-d'], true, '');
-        const trackTool = yield installGitRemoteHg(tmpDir);
-        yield mirrorHgRepo(tmpDir, hgRepoURL, gitRepoURL, trackTool);
+        const reValidStrInput = /^[-a-zA-Z0-9_:\/\.@]+$/;
+        const checkInputs = {
+            'source-hg-repo-url': hgRepoURL,
+            'destination-git-domain': gitDomain,
+            'destination-git-scheme': gitScheme,
+            'destination-git-repo-owner': gitRepoOwner,
+            'destination-git-repo-name': gitRepoName,
+            'destination-git-personal-token': gitToken,
+            'repo-style': repoStyle,
+        };
+        let invalid = false;
+        Object.entries(checkInputs).forEach(function (v) {
+            if (!reValidStrInput.test(v[1])) {
+                core.setFailed(`${v[0]}: invalid input`);
+                invalid = true;
+            }
+        });
+        if (invalid) {
+            return;
+        }
+        const gitRepoURL = `${gitScheme}://${gitRepoOwner}:${gitToken}@${gitDomain}/${gitRepoOwner}/${gitRepoName}.git`;
+        const tmpDir = yield utils.execOut('mktemp', ['-d', '--suffix', '-mirror-hg-dir'], true, '');
+        const trackTool = yield installGitRemoteHg(tmpDir, repoStyle);
+        yield mirrorHgRepo(tmpDir, hgRepoURL, gitRepoURL, trackTool, forcePush);
     });
 }
 main();
