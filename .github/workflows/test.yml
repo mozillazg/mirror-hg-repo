@@ -48,7 +48,7 @@ jobs:
 
   mirror-pypy:
     runs-on: ubuntu-latest
-    name: mirror hg repo
+    name: mirror pypy
     permissions:
       contents: read  # This is required for actions/checkout
     steps:
