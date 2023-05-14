@@ -16,14 +16,14 @@ async function installGitRemoteHg(dir: string) {
     // v1.0.4 https://github.com/mnauw/git-remote-hg/commit/426ed618b29170322fb6968f4cdce1d7e707aa1d
     await utils.execOut(
         gitPath,
-        ['clone', 'https://github.com/mnauw/git-remote-hg.git', '-b', 'v1.0.4', '--depth', '1', repoPath],
+        ['clone', 'https://github.com/mozillazg/git-remote-hg.git', '-b', 'pypy', '--depth', '1', repoPath],
         false, '',
         );
-    await utils.execOut(
-        gitPath,
-        ['checkout', '426ed618b29170322fb6968f4cdce1d7e707aa1d'],
-        false, repoPath,
-    );
+    // await utils.execOut(
+    //     gitPath,
+    //     ['checkout', '426ed618b29170322fb6968f4cdce1d7e707aa1d'],
+    //     false, repoPath,
+    // );
 
     const chmodPath = await io.which('chmod', true);
     const toolPath = `${repoPath}/git-remote-hg`;
