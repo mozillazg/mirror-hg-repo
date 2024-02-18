@@ -73,6 +73,8 @@ async function mirrorHgRepo(dir: string, hgURL: string, gitURL: string, trackToo
         console.info(e);
     }
 
+    await utils.execOut(gitPath, ['gc', '--aggressive'], false, repoPath);
+
     const extraArgs = [];
     if (forcePush) {
         extraArgs.push('--force');
